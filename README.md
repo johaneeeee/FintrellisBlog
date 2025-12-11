@@ -199,5 +199,5 @@ This submission focuses on **delivering working, production-quality code** for a
 
 Ranaivomampionona Fenohasina Mihanta Johane
 
-- GitHub: [@_johaneeeee](https://github.com/_johaneeeee)
+- GitHub: [@johaneeeee](https://github.com/_johaneeeee)
 - **Commitment**: Focused on delivering working, maintainable code
