@@ -29,7 +29,7 @@ A complete blog management system built with .NET 8 backend and React frontend, 
 - **Global Error Handling**: Custom middleware
 - **Swagger/OpenAPI**: Complete API documentation at `https://localhost:7178/swagger`
 - **SOLID principles**: Clean architecture implementation
-- **Unit Tests**: xUnit tests with Moq (all passing)
+- **Unit Tests**: xUnit tests (all passing)
 
 ### Frontend (React) 
 - **Responsive React**: Bootstrap 5 interface
@@ -57,10 +57,6 @@ API available at: `https://localhost:7178` (Swagger: `https://localhost:7178/swa
 
 cd fintrellisblog-frontend
 # Simply open index.html in your browser
-# Or use a local server:
-python -m http.server 8000
-
-Then visit: `http://localhost:8000`
 
 ### Note on Docker
 The project includes Docker configuration files, but Docker execution could not be fully tested due to system storage constraints. The configuration follows best practices and is production-ready.
@@ -87,10 +83,8 @@ FintrellisBlog/
 │   └── appsettings.json          # Configuration
 ├── FintrellisBlogApi.Tests/      # Unit tests (all passing)
 └── fintrellisblog-frontend/      # React Frontend
-    ├── index.html                # Main HTML with React CDN
-    ├── styles.css                # Custom CSS
-    └── app.js                    # React application
-
+    └── index.html                # Complete React application (HTML + CSS + JS combined)
+    
 ## **Completed Requirements**
 
 ### From Assignment PDF:
@@ -99,7 +93,7 @@ FintrellisBlog/
 3. **Proper error handling, logging, validation** - Middleware + FluentValidation
 4. **Adhere to SOLID principles** - Clean architecture implemented
 5. **Use relational database** - SQLite with Entity Framework Core
-6. **Write unit tests** - xUnit tests with Moq (all passing)
+6. **Write unit tests** - 4 xUnit tests with in-memory database (all passing)
 7. **Bonus: Docker containerization** - Configured but not fully tested
 
 ### Frontend Requirements:
@@ -149,8 +143,7 @@ cd FintrellisBlogApi.Tests
 dotnet test
 # Output: Passed! - Failed: 0, Passed: 4, Skipped: 0, Total: 4
 
-### Test Coverage
-- **PostService**: All CRUD operations tested
+**Test Coverage**: Core CRUD operations tested
 - **Validation**: FluentValidation rules verified
 - **Error Handling**: Edge cases covered
 
@@ -184,7 +177,7 @@ dotnet test
 - **FluentValidation** - Robust validation
 - **Swagger** - API documentation
 - **xUnit** - Testing framework
-- **Moq** - Mocking library
+- **In-memory database** - For unit testing
 
 ### Frontend (Functional & Professional)
 - **React 18** - Latest version via CDN
