@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fintrellis Blog Manager</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom CSS (Embedded) -->
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        /* Header */
+        .app-header {
+            background: linear-gradient(135deg, #2c3e50, #3498db);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .app-title {
+            font-weight: 700;
+            font-size: 2.5rem;
+            margin: 0;
+        }
+        
+        /* Search Bar */
+        .search-container {
+            max-width: 500px;
+            margin: 0 auto 2rem;
+        }
+        
+        .search-input {
+            border-radius: 25px;
+            padding: 0.75rem 1.5rem;
+            border: 2px solid #e9ecef;
+            transition: all 0.3s;
+        }
+        
+        .search-input:focus {
+            border-color: #3498db;
+            box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
+        }
+        
+        /* Post Cards */
+        .posts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+        
+        .post-card {
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+            border: none;
+        }
+        
+        .post-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .post-content {
+            padding: 1.5rem;
+        }
+        
+        .post-title {
+            color: #2c3e50;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+        }
+        
+        .post-body {
+            color: #555;
+            line-height: 1.6;
+            margin-bottom: 1rem;
+            height: 60px;
+            overflow: hidden;
+        }
+        
+        .post-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 1rem;
+            border-top: 1px solid #eee;
+        }
+        
+        /* Buttons */
+        .btn-action {
+            padding: 0.4rem 0.8rem;
+            border-radius: 5px;
+            font-size: 0.85rem;
+            border: none;
+            cursor: pointer;
+            margin: 0 2px;
+        }
+        
+        .btn-edit {
+            background-color: #3498db;
+            color: white;
+        }
+        
+        .btn-delete {
+            background-color: #e74c3c;
+            color: white;
+        }
+        
+        .btn-view {
+            background-color: #2ecc71;
+            color: white;
+        }
+        
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 10px;
+            padding: 2rem;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        /* Loading Spinner */
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 2rem auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .posts-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .app-title {
+                font-size: 2rem;
+            }
+            
+            .btn-action {
+                margin-bottom: 5px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="root" class="container-fluid px-0"></div>
+    
+    <!-- React & Babel CDN -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Axios -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Embedded React App -->
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        
+        // ========== COMPONENTS ==========
+        
+        // Post Form Modal Component
+        function PostFormModal({ isOpen, onClose, post, onSave, isEditing }) {
+            const [formData, setFormData] = useState({
+                title: post?.title || '',
+                content: post?.content || '',
+                author: post?.author || ''
+            });
+            
+            const [errors, setErrors] = useState({});
+            
+            useEffect(() => {
+                if (post) {
+                    setFormData({
+                        title: post.title || '',
+                        content: post.content || '',
+                        author: post.author || ''
+                    });
+                } else {
+                    setFormData({
+                        title: '',
+                        content: '',
+                        author: ''
+                    });
+                }
+            }, [post]);
+            
+            const handleChange = (e) => {
+                const { name, value } = e.target;
+                setFormData(prev => ({ ...prev, [name]: value }));
+                
+                // Clear error when user types
+                if (errors[name]) {
+                    setErrors(prev => ({ ...prev, [name]: '' }));
+                }
+            };
+            
+            const validateForm = () => {
+                const newErrors = {};
+                
+                if (!formData.title.trim()) {
+                    newErrors.title = 'Title is required';
+                } else if (formData.title.length < 3) {
+                    newErrors.title = 'Title must be at least 3 characters';
+                }
+                
+                if (!formData.content.trim()) {
+                    newErrors.content = 'Content is required';
+                } else if (formData.content.length < 10) {
+                    newErrors.content = 'Content must be at least 10 characters';
+                }
+                
+                setErrors(newErrors);
+                return Object.keys(newErrors).length === 0;
+            };
+            
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                if (validateForm()) {
+                    onSave(formData);
+                    onClose();
+                }
+            };
+            
+            if (!isOpen) return null;
+            
+            return (
+                <div className="modal-overlay">
+                    <div className="modal-content">
+                        <div className="d-flex justify-content-between align-items-center mb-4">
+                            <h3 className="mb-0">
+                                <i className={`fas ${isEditing ? 'fa-edit' : 'fa-plus'} me-2`}></i>
+                                {isEditing ? 'Edit Post' : 'Create New Post'}
+                            </h3>
+                            <button 
+                                type="button" 
+                                className="btn-close" 
+                                onClick={onClose}
+                            ></button>
+                        </div>
+                        
+                        <form onSubmit={handleSubmit}>
+                            <div className="mb-3">
+                                <label className="form-label">Title *</label>
+                                <input
+                                    type="text"
+                                    className={`form-control ${errors.title ? 'is-invalid' : ''}`}
+                                    name="title"
+                                    value={formData.title}
+                                    onChange={handleChange}
+                                    placeholder="Enter post title"
+                                />
+                                {errors.title && <div className="invalid-feedback">{errors.title}</div>}
+                            </div>
+                            
+                            <div className="mb-3">
+                                <label className="form-label">Content *</label>
+                                <textarea
+                                    className={`form-control ${errors.content ? 'is-invalid' : ''}`}
+                                    name="content"
+                                    rows="5"
+                                    value={formData.content}
+                                    onChange={handleChange}
+                                    placeholder="Write your post content here..."
+                                />
+                                {errors.content && <div className="invalid-feedback">{errors.content}</div>}
+                            </div>
+                            
+                            <div className="mb-4">
+                                <label className="form-label">Author (Optional)</label>
+                                <input
+                                    type="text"
+                                    className="form-control"
+                                    name="author"
+                                    value={formData.author}
+                                    onChange={handleChange}
+                                    placeholder="Your name"
+                                />
+                            </div>
+                            
+                            <div className="d-flex justify-content-end gap-2">
+                                <button type="button" className="btn btn-secondary" onClick={onClose}>
+                                    Cancel
+                                </button>
+                                <button type="submit" className="btn btn-primary">
+                                    {isEditing ? 'Update Post' : 'Create Post'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            );
+        }
+        
+        // View Post Modal Component
+        function ViewPostModal({ isOpen, onClose, post }) {
+            if (!isOpen || !post) return null;
+            
+            return (
+                <div className="modal-overlay">
+                    <div className="modal-content">
+                        <div className="d-flex justify-content-between align-items-center mb-4">
+                            <h3 className="mb-0">View Post</h3>
+                            <button 
+                                type="button" 
+                                className="btn-close" 
+                                onClick={onClose}
+                            ></button>
+                        </div>
+                        
+                        <div className="mb-3">
+                            <h4>{post.title}</h4>
+                        </div>
+                        
+                        <div className="mb-3">
+                            <p style={{whiteSpace: 'pre-wrap'}}>{post.content}</p>
+                        </div>
+                        
+                        <div className="text-muted small">
+                            <div className="mb-2">
+                                <i className="fas fa-user me-1"></i>
+                                <strong>Author:</strong> {post.author || 'Anonymous'}
+                            </div>
+                            <div className="mb-2">
+                                <i className="fas fa-calendar me-1"></i>
+                                <strong>Created:</strong> {new Date(post.createdAt).toLocaleDateString()}
+                            </div>
+                            {post.updatedAt && (
+                                <div>
+                                    <i className="fas fa-edit me-1"></i>
+                                    <strong>Updated:</strong> {new Date(post.updatedAt).toLocaleDateString()}
+                                </div>
+                            )}
+                        </div>
+                        
+                        <div className="mt-4">
+                            <button className="btn btn-primary" onClick={onClose}>
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+        
+        // ========== MAIN APP ==========
+        function BlogManagerApp() {
+            const [posts, setPosts] = useState([]);
+            const [filteredPosts, setFilteredPosts] = useState([]);
+            const [loading, setLoading] = useState(true);
+            const [message, setMessage] = useState('');
+            const [searchTerm, setSearchTerm] = useState('');
+            const [showCreateModal, setShowCreateModal] = useState(false);
+            const [showEditModal, setShowEditModal] = useState(false);
+            const [showViewModal, setShowViewModal] = useState(false);
+            const [selectedPost, setSelectedPost] = useState(null);
+            
+            // API Configuration
+            const API_BASE = 'https://localhost:7178'; 
+            const API_URL = `${API_BASE}/api/posts`;
+            
+            // Fetch posts
+            const fetchPosts = async () => {
+                try {
+                    setLoading(true);
+                    const response = await axios.get(API_URL);
+                    setPosts(response.data);
+                    setFilteredPosts(response.data);
+                    setMessage('');
+                } catch (error) {
+                    setMessage('Error: Could not connect to API. Make sure backend is running.');
+                    console.error('API Error:', error);
+                } finally {
+                    setLoading(false);
+                }
+            };
+            
+            // Load on mount
+            useEffect(() => {
+                fetchPosts();
+            }, []);
+            
+            // Search functionality
+            useEffect(() => {
+                if (searchTerm.trim() === '') {
+                    setFilteredPosts(posts);
+                } else {
+                    const filtered = posts.filter(post => 
+                        post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                        post.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                        (post.author && post.author.toLowerCase().includes(searchTerm.toLowerCase()))
+                    );
+                    setFilteredPosts(filtered);
+                }
+            }, [searchTerm, posts]);
+            
+            // Create post
+            const handleCreatePost = async (postData) => {
+                try {
+                    const response = await axios.post(API_URL, postData);
+                    const updatedPosts = [response.data, ...posts];
+                    setPosts(updatedPosts);
+                    setFilteredPosts(updatedPosts);
+                    setMessage('Post created successfully!');
+                    setTimeout(() => setMessage(''), 3000);
+                } catch (error) {
+                    setMessage('Error creating post');
+                }
+            };
+            
+            // Update post
+            const handleUpdatePost = async (postData) => {
+                try {
+                    const response = await axios.put(`${API_URL}/${selectedPost.id}`, postData);
+                    const updatedPosts = posts.map(post => 
+                        post.id === selectedPost.id ? response.data : post
+                    );
+                    setPosts(updatedPosts);
+                    setFilteredPosts(updatedPosts);
+                    setMessage('Post updated successfully!');
+                    setTimeout(() => setMessage(''), 3000);
+                } catch (error) {
+                    setMessage('Error updating post');
+                }
+            };
+            
+            // Delete post
+            const handleDelete = async (id) => {
+                if (window.confirm('Are you sure you want to delete this post?')) {
+                    try {
+                        await axios.delete(`${API_URL}/${id}`);
+                        const updatedPosts = posts.filter(post => post.id !== id);
+                        setPosts(updatedPosts);
+                        setFilteredPosts(updatedPosts);
+                        setMessage('Post deleted successfully!');
+                        setTimeout(() => setMessage(''), 3000);
+                    } catch (error) {
+                        setMessage('Error deleting post');
+                    }
+                }
+            };
+            
+            // Handle form save
+            const handleSave = (postData) => {
+                if (selectedPost) {
+                    handleUpdatePost(postData);
+                } else {
+                    handleCreatePost(postData);
+                }
+                setSelectedPost(null);
+            };
+            
+            // Handle edit
+            const handleEdit = (post) => {
+                setSelectedPost(post);
+                setShowEditModal(true);
+            };
+            
+            // Handle view
+            const handleView = (post) => {
+                setSelectedPost(post);
+                setShowViewModal(true);
+            };
+            
+            return (
+                <div>
+                    {/* Header */}
+                    <header className="app-header">
+                        <div className="container">
+                            <h1 className="app-title">
+                                <i className="fas fa-paper-plane me-3"></i>
+                                Fintrellis Blog Manager
+                            </h1>
+                            <p>Manage your blog posts </p>
+                        </div>
+                    </header>
+                    
+                    <main className="container">
+                        {/* Messages */}
+                        {message && (
+                            <div className={`alert ${message.includes('Error') ? 'alert-danger' : 'alert-success'}`}>
+                                {message}
+                            </div>
+                        )}
+                        
+                        {/* Search Bar */}
+                        <div className="search-container">
+                            <div className="input-group">
+                                <span className="input-group-text">
+                                    <i className="fas fa-search"></i>
+                                </span>
+                                <input
+                                    type="text"
+                                    className="form-control search-input"
+                                    placeholder="Search posts by title, content, or author..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                />
+                                {searchTerm && (
+                                    <button 
+                                        className="btn btn-outline-secondary"
+                                        onClick={() => setSearchTerm('')}
+                                    >
+                                        <i className="fas fa-times"></i>
+                                    </button>
+                                )}
+                            </div>
+                            {searchTerm && filteredPosts.length > 0 && (
+                                <div className="text-muted small mt-2">
+                                    Found {filteredPosts.length} post{filteredPosts.length !== 1 ? 's' : ''}
+                                </div>
+                            )}
+                        </div>
+                        
+                        {/* Controls */}
+                        <div className="d-flex justify-content-between align-items-center mb-4">
+                            <h2>
+                                Blog Posts ({filteredPosts.length})
+                                {searchTerm && filteredPosts.length < posts.length && (
+                                    <span className="text-muted fs-6 ms-2">
+                                        (filtered from {posts.length})
+                                    </span>
+                                )}
+                            </h2>
+                            <button 
+                                className="btn btn-primary" 
+                                onClick={() => {
+                                    setSelectedPost(null);
+                                    setShowCreateModal(true);
+                                }}
+                            >
+                                <i className="fas fa-plus me-2"></i>New Post
+                            </button>
+                        </div>
+                        
+                        {/* Loading */}
+                        {loading ? (
+                            <div className="text-center">
+                                <div className="spinner"></div>
+                                <p>Loading posts...</p>
+                            </div>
+                        ) : filteredPosts.length === 0 ? (
+                            <div className="text-center py-5">
+                                <i className="fas fa-circle-exclamation fa-3x text-muted mb-3"></i>
+                                <h3>
+                                    {searchTerm ? 'No matching posts found' : 'No posts yet'}
+                                </h3>
+                                <p>
+                                    {searchTerm 
+                                        ? 'Try a different search term' 
+                                        : 'Create your first blog post!'
+                                    }
+                                </p>
+                                {searchTerm && (
+                                    <button 
+                                        className="btn btn-outline-secondary mt-2"
+                                        onClick={() => setSearchTerm('')}
+                                    >
+                                        Clear Search
+                                    </button>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="posts-grid">
+                                {filteredPosts.map(post => (
+                                    <div key={post.id} className="post-card">
+                                        <div className="post-content">
+                                            <h3 className="post-title">{post.title}</h3>
+                                            <p className="post-body">{post.content.substring(0, 150)}...</p>
+                                            
+                                            <div className="post-meta">
+                                                <div>
+                                                    <small className="text-muted">
+                                                        <i className="fas fa-user me-1"></i>
+                                                        {post.author || 'Anonymous'}
+                                                    </small>
+                                                    <br />
+                                                    <small className="text-muted">
+                                                        <i className="fas fa-calendar me-1"></i>
+                                                        {new Date(post.createdAt).toLocaleDateString()}
+                                                    </small>
+                                                </div>
+                                                
+                                                <div>
+                                                    <button 
+                                                        className="btn-action btn-view"
+                                                        onClick={() => handleView(post)}
+                                                    >
+                                                        <i className="fas fa-eye"></i>
+                                                    </button>
+                                                    <button 
+                                                        className="btn-action btn-edit"
+                                                        onClick={() => handleEdit(post)}
+                                                    >
+                                                        <i className="fas fa-edit"></i>
+                                                    </button>
+                                                    <button 
+                                                        className="btn-action btn-delete"
+                                                        onClick={() => handleDelete(post.id)}
+                                                    >
+                                                        <i className="fas fa-trash"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                        
+                        {/* API Info */}
+                        <div className="mt-5 pt-4 border-top text-center text-muted small">
+                            <p>
+                                <i className="fas fa-server me-2"></i>
+                                Backend API: <code>{API_BASE}</code>
+                            </p>
+                            <p>
+                                <i className="fas fa-code me-2"></i>
+                                React + Bootstrap + Axios
+                            </p>
+                        </div>
+                    </main>
+                    
+                    {/* Modals */}
+                    <PostFormModal
+                        isOpen={showCreateModal}
+                        onClose={() => setShowCreateModal(false)}
+                        onSave={handleSave}
+                        isEditing={false}
+                    />
+                    
+                    <PostFormModal
+                        isOpen={showEditModal}
+                        onClose={() => {
+                            setShowEditModal(false);
+                            setSelectedPost(null);
+                        }}
+                        post={selectedPost}
+                        onSave={handleSave}
+                        isEditing={true}
+                    />
+                    
+                    <ViewPostModal
+                        isOpen={showViewModal}
+                        onClose={() => {
+                            setShowViewModal(false);
+                            setSelectedPost(null);
+                        }}
+                        post={selectedPost}
+                    />
+                </div>
+            );
+        }
+        
+        // ========== RENDER ==========
+        ReactDOM.createRoot(document.getElementById('root')).render(<BlogManagerApp />);
+    </script>
+</body>
+</html>
