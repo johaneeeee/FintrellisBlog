@@ -62,7 +62,7 @@ cd fintrellisblog-frontend
 The project includes Docker configuration files, but Docker execution could not be fully tested due to system storage constraints. The configuration follows best practices and is production-ready.
 
 ## Project Structure
-
+```
 FintrellisBlog/
 ├── README.md                      # This file
 ├── Screenshots/                   # Application previews
@@ -84,7 +84,8 @@ FintrellisBlog/
 ├── FintrellisBlogApi.Tests/      # Unit tests (all passing)
 └── fintrellisblog-frontend/      # React Frontend
     └── index.html                # Complete React application (HTML + CSS + JS combined)
-    
+```
+
 ## **Completed Requirements**
 
 ### From Assignment PDF:
